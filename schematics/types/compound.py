@@ -49,7 +49,6 @@ class MultiType(BaseType):
 
 
 class ModelType(MultiType):
-
     def __init__(self, model_class, **kwargs):
         self.model_class = model_class
         self.fields = self.model_class.fields
@@ -60,12 +59,10 @@ class ModelType(MultiType):
             model_instance.validate()
             return model_instance
 
-        super(ModelType, self).__init__(
-            validators=[validate_model] + validators,  **kwargs)
+        super(ModelType, self).__init__(validators=[validate_model] + validators,  **kwargs)
 
     def __repr__(self):
-        return (object.__repr__(self)[:-1]
-                + ' for {!s}>'.format(self.model_class))
+        return object.__repr__(self)[:-1] + ' for %s>' % self.model_class
 
     def to_native(self, value):
         # We have already checked if the field is required. If it is None it
@@ -77,7 +74,7 @@ class ModelType(MultiType):
             return value
 
         if not isinstance(value, dict):
-            raise ConversionError('Please use a mapping for this field or {0} instance instead of {1}.'.format(
+            raise ConversionError(u'Please use a mapping for this field or {0} instance instead of {1}.'.format(
                 self.model_class.__name__,
                 type(value).__name__))
 
@@ -91,21 +88,21 @@ class ModelType(MultiType):
             serialized_name = field.serialized_name or field_name
 
             if value is None and model_instance.allow_none(field):
-                primitive_data[serialized_name] = None
+                    primitive_data[serialized_name] = None
             else:
                 primitive_data[serialized_name] = field.to_primitive(value)
 
         return primitive_data
 
-    def export_loop(self, model_instance, field_converter,
+    def export_loop(self, model_instance, field_converter, 
                     role=None, print_none=False):
         """
         Calls the main `export_loop` implementation because they are both
         supposed to operate on models.
         """
-        shaped = export_loop(self.model_class, model_instance,
-                             field_converter,
-                             role=role, print_none=print_none)
+        shaped =  export_loop(self.model_class, model_instance,
+                              field_converter, 
+                              role=role, print_none=print_none)
 
         if shaped and len(shaped) == 0 and self.allow_none():
             return shaped
@@ -127,8 +124,7 @@ class ListType(MultiType):
         self.min_size = min_size
         self.max_size = max_size
 
-        validators = [self.check_length, self.validate_items] + \
-            kwargs.pop("validators", [])
+        validators = [self.check_length, self.validate_items] + kwargs.pop("validators", [])
 
         super(ListType, self).__init__(validators=validators, **kwargs)
 
@@ -141,7 +137,7 @@ class ListType(MultiType):
             return []
 
         try:
-            if isinstance(value, str):
+            if isinstance(value, basestring):
                 raise TypeError()
 
             if isinstance(value, dict):
@@ -154,21 +150,23 @@ class ListType(MultiType):
     def to_native(self, value):
         items = self._force_list(value)
 
-        return list(map(self.field.to_native, items))
+        return map(self.field.to_native, items)
 
     def check_length(self, value):
         list_length = len(value) if value else 0
-        MESSAGES = {
-            True: 'Please provide no more than {0:d} item.',
-            False: 'Please provide no more than {0:d} items.',
-        }
-        if self.min_size is not None and list_length < self.min_size:
 
-            message = MESSAGES[self.min_size == 1].format(self.min_size)
+        if self.min_size is not None and list_length < self.min_size:
+            message = ({
+                True: u'Please provide at least %d item.',
+                False: u'Please provide at least %d items.'}[self.min_size == 1]
+            ) % self.min_size
             raise ValidationError(message)
 
         if self.max_size is not None and list_length > self.max_size:
-            message = MESSAGES[self.max_size == 1].format(self.max_size)
+            message = ({
+                True: u'Please provide no more than %d item.',
+                False: u'Please provide no more than %d items.'}[self.max_size == 1]
+            ) % self.max_size
             raise ValidationError(message)
 
     def validate_items(self, items):
@@ -185,7 +183,7 @@ class ListType(MultiType):
     def to_primitive(self, value):
         return map(self.field.to_primitive, value)
 
-    def export_loop(self, list_instance, field_converter,
+    def export_loop(self, list_instance, field_converter, 
                     role=None, print_none=False):
         """Loops over each item in the model and applies either the field
         transform or the multitype transform.  Essentially functions the same
@@ -199,9 +197,9 @@ class ListType(MultiType):
                 feels_empty = shaped and len(shaped) == 0
             else:
                 shaped = field_converter(self.field, value)
-                feels_empty = (shaped is None)
+                feels_empty = shaped == None
 
-            # Print if we want empty or found a value
+            ### Print if we want empty or found a value
             if (feels_empty and self.allow_none()):
                 data.append(shaped)
             elif shaped is not None:
@@ -209,7 +207,7 @@ class ListType(MultiType):
             elif print_none:
                 data.append(shaped)
 
-        # Return data if the list contains anything
+        ### Return data if the list contains anything
         if len(data) > 0:
             return data
         elif len(data) == 0 and self.allow_none():
@@ -243,15 +241,14 @@ class DictType(MultiType):
         value = value or {}
 
         if not isinstance(value, dict):
-            raise ValidationError(
-                'Only dictionaries may be used in a DictType')
+            raise ValidationError(u'Only dictionaries may be used in a DictType')
 
         return dict((self.coerce_key(k), self.field.to_native(v))
-                    for k, v in value.items())
+                    for k, v in value.iteritems())
 
     def validate_items(self, items):
         errors = {}
-        for key, value in items.items():
+        for key, value in items.iteritems():
             try:
                 self.field.validate(value)
             except ValidationError as e:
@@ -261,10 +258,9 @@ class DictType(MultiType):
             raise ValidationError(errors)
 
     def to_primitive(self, value):
-        return dict((str(k), self.field.to_primitive(v))
-                    for k, v in value.items())
+        return dict((unicode(k), self.field.to_primitive(v)) for k, v in value.iteritems())
 
-    def export_loop(self, dict_instance, field_converter,
+    def export_loop(self, dict_instance, field_converter, 
                     role=None, print_none=False):
         """Loops over each item in the model and applies either the field
         transform or the multitype transform.  Essentially functions the same
@@ -272,14 +268,14 @@ class DictType(MultiType):
         """
         data = {}
 
-        for key, value in dict_instance.items():
+        for key, value in dict_instance.iteritems():
             if hasattr(self.field, 'export_loop'):
                 shaped = self.field.export_loop(value, field_converter,
                                                 role=role)
                 feels_empty = shaped and len(shaped) == 0
             else:
                 shaped = field_converter(self.field, value)
-                feels_empty = (shaped is None)
+                feels_empty = shaped == None
 
             if feels_empty and self.allow_none():
                 data[key] = shaped
@@ -294,3 +290,4 @@ class DictType(MultiType):
             return data
         elif print_none:
             return data
+

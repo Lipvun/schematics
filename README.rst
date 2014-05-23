@@ -3,6 +3,8 @@ Fork reason
 ==========
 Fork for Python 3k.
 
+`pip install git+https://github.com/Lipvun/schematics.git`
+
 ==========
 Schematics
 ==========

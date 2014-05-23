@@ -1,7 +1,7 @@
 class BaseError(Exception):
     def __init__(self, messages):
         if not isinstance(messages, (list, tuple, dict)):
-            messages = [messages]
+            messages = list(messages)
 
         clean_messages = self.clean_messages(messages)
 

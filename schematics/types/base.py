@@ -8,12 +8,21 @@ import functools
 from ..exceptions import StopValidation, ValidationError, ConversionError
 
 
+def force_unicode(obj, encoding='utf-8'):
+    if isinstance(obj, basestring):
+        if not isinstance(obj, unicode):
+            obj = unicode(obj, encoding)
+    elif not obj is None:
+        obj = unicode(obj)
+
+    return obj
+
+
 _last_position_hint = -1
 _next_position_hint = itertools.count()
 
 
 class TypeMeta(type):
-
     """
     Meta class for BaseType. Merges `MESSAGES` dict and accumulates
     validator methods.
@@ -35,7 +44,7 @@ class TypeMeta(type):
 
         attrs['MESSAGES'] = messages
 
-        for attr_name, attr in attrs.items():
+        for attr_name, attr in attrs.iteritems():
             if attr_name.startswith("validate_"):
                 validators.append(attr)
 
@@ -44,8 +53,7 @@ class TypeMeta(type):
         return type.__new__(cls, name, bases, attrs)
 
 
-class BaseType(object, metaclass=TypeMeta):
-
+class BaseType(TypeMeta('BaseTypeBase', (object, ), {})):
     """A base class for Types in a Schematics model. Instances of this
     class may be added to subclasses of ``Model`` to define a model schema.
 
@@ -86,8 +94,8 @@ class BaseType(object, metaclass=TypeMeta):
     """
 
     MESSAGES = {
-        'required': "This field is required.",
-        'choices': "Value must be one of {0}.",
+        'required': u"This field is required.",
+        'choices': u"Value must be one of {0}.",
     }
 
     def __init__(self, required=False, default=None, serialized_name=None,
@@ -99,15 +107,13 @@ class BaseType(object, metaclass=TypeMeta):
         self.choices = choices
         self.deserialize_from = deserialize_from
 
-        self.validators = [
-            functools.partial(v, self) for v in self._validators]
+        self.validators = [functools.partial(v, self) for v in self._validators]
         if validators:
             self.validators += validators
 
         self.serialize_when_none = serialize_when_none
         self.messages = dict(self.MESSAGES, **(messages or {}))
-        # For ordering of fields
-        self._position_hint = next(_next_position_hint)
+        self._position_hint = next(_next_position_hint)  # For ordering of fields
 
     def __call__(self, value):
         return self.to_native(value)
@@ -167,11 +173,10 @@ class BaseType(object, metaclass=TypeMeta):
         if self.choices is not None:
             if value not in self.choices:
                 raise ValidationError(self.messages['choices']
-                                      .format(unicode(self.choices)))
+                    .format(unicode(self.choices)))
 
 
 class UUIDType(BaseType):
-
     """A field that stores a valid UUID value.
     """
 
@@ -185,7 +190,6 @@ class UUIDType(BaseType):
 
 
 class IPv4Type(BaseType):
-
     """ A field that stores a valid IPv4 address """
 
     def __init__(self, auto_fill=False, **kwargs):
@@ -228,7 +232,6 @@ class IPv4Type(BaseType):
 
 
 class StringType(BaseType):
-
     """A unicode string field. Default minimum length is one. If you want to
     accept empty strings, init with ``min_length`` 0.
     """
@@ -236,10 +239,10 @@ class StringType(BaseType):
     allow_casts = (int, str)
 
     MESSAGES = {
-        'convert': "Couldn't interpret value as string.",
-        'max_length': "String value is too long.",
-        'min_length': "String value is too short.",
-        'regex': "String value did not match validation regex.",
+        'convert': u"Couldn't interpret value as string.",
+        'max_length': u"String value is too long.",
+        'min_length': u"String value is too short.",
+        'regex': u"String value did not match validation regex.",
     }
 
     def __init__(self, regex=None, max_length=None, min_length=None, **kwargs):
@@ -253,11 +256,13 @@ class StringType(BaseType):
         if value is None:
             return None
 
-        if isinstance(value, self.allow_casts):
-            if not isinstance(value, str):
-                value = str(value)
-        else:
-            raise ConversionError(self.messages['convert'])
+        if not isinstance(value, unicode):
+            if isinstance(value, self.allow_casts):
+                if not isinstance(value, str):
+                    value = str(value)
+                value = unicode(value, 'utf-8')
+            else:
+                raise ConversionError(self.messages['convert'])
 
         return value
 
@@ -276,7 +281,6 @@ class StringType(BaseType):
 
 
 class URLType(StringType):
-
     """A field that validates input as an URL.
 
     If verify_exists=True is passed the validate function will make sure
@@ -284,8 +288,8 @@ class URLType(StringType):
     """
 
     MESSAGES = {
-        'invalid_url': "Not a well formed URL.",
-        'not_found': "URL does not exist.",
+        'invalid_url': u"Not a well formed URL.",
+        'not_found': u"URL does not exist.",
     }
 
     URL_REGEX = re.compile(
@@ -305,16 +309,15 @@ class URLType(StringType):
         if not URLType.URL_REGEX.match(value):
             raise StopValidation(self.messages['invalid_url'])
         if self.verify_exists:
-            import urllib.request
+            import urllib2
             try:
-                request = urllib.request.Request(value)
-                urllib.request.urlopen(request)
+                request = urllib2.Request(value)
+                urllib2.urlopen(request)
             except Exception:
                 raise StopValidation(self.messages['not_found'])
 
 
 class EmailType(StringType):
-
     """A field that validates input as an E-Mail-Address.
     """
 
@@ -339,14 +342,13 @@ class EmailType(StringType):
 
 
 class NumberType(BaseType):
-
     """A number field.
     """
 
     MESSAGES = {
-        'number_coerce': "Value is not {0}",
-        'number_min': "{0} value should be greater than {1}",
-        'number_max': "{0} value should be less than {1}",
+        'number_coerce': u"Value is not {0}",
+        'number_min': u"{0} value should be greater than {1}",
+        'number_max': u"{0} value should be less than {1}",
     }
 
     def __init__(self, number_class, number_type,
@@ -363,24 +365,23 @@ class NumberType(BaseType):
             value = self.number_class(value)
         except (TypeError, ValueError):
             raise ConversionError(self.messages['number_coerce']
-                                  .format(self.number_type.lower()))
+                .format(self.number_type.lower()))
 
         return value
 
     def validate_range(self, value):
         if self.min_value is not None and value < self.min_value:
             raise ValidationError(self.messages['number_min']
-                                  .format(self.number_type, self.min_value))
+                .format(self.number_type, self.min_value))
 
         if self.max_value is not None and value > self.max_value:
             raise ValidationError(self.messages['number_max']
-                                  .format(self.number_type, self.max_value))
+                .format(self.number_type, self.max_value))
 
         return value
 
 
 class IntType(NumberType):
-
     """A field that validates input as an Integer
     """
 
@@ -391,10 +392,8 @@ class IntType(NumberType):
 
 
 class LongType(NumberType):
-
     """A field that validates input as a Long
     """
-
     def __init__(self, *args, **kwargs):
         super(LongType, self).__init__(number_class=long,
                                        number_type='Long',
@@ -402,10 +401,8 @@ class LongType(NumberType):
 
 
 class FloatType(NumberType):
-
     """A field that validates input as a Float
     """
-
     def __init__(self, *args, **kwargs):
         super(FloatType, self).__init__(number_class=float,
                                         number_type='Float',
@@ -413,14 +410,13 @@ class FloatType(NumberType):
 
 
 class DecimalType(BaseType):
-
     """A fixed-point decimal number field.
     """
 
     MESSAGES = {
         'number_coerce': 'Number failed to convert to a decimal',
-        'number_min': "Value should be greater than {0}",
-        'number_max': "Value should be less than {0}",
+        'number_min': u"Value should be greater than {}",
+        'number_max': u"Value should be less than {}",
     }
 
     def __init__(self, min_value=None, max_value=None, **kwargs):
@@ -429,12 +425,12 @@ class DecimalType(BaseType):
         super(DecimalType, self).__init__(**kwargs)
 
     def to_primitive(self, value):
-        return str(value)
+        return unicode(value)
 
     def to_native(self, value):
         if not isinstance(value, decimal.Decimal):
-            if not isinstance(value, str):
-                value = str(value)
+            if not isinstance(value, basestring):
+                value = unicode(value)
             try:
                 value = decimal.Decimal(value)
 
@@ -458,8 +454,8 @@ class DecimalType(BaseType):
 class HashType(BaseType):
 
     MESSAGES = {
-        'hash_length': "Hash value is wrong length.",
-        'hash_hex': "Hash value is not hexadecimal.",
+        'hash_length': u"Hash value is wrong length.",
+        'hash_hex': u"Hash value is not hexadecimal.",
     }
 
     def to_native(self, value):
@@ -473,7 +469,6 @@ class HashType(BaseType):
 
 
 class MD5Type(HashType):
-
     """A field that validates input as resembling an MD5 hash.
     """
 
@@ -481,7 +476,6 @@ class MD5Type(HashType):
 
 
 class SHA1Type(HashType):
-
     """A field that validates input as resembling an SHA1 hash.
     """
 
@@ -489,7 +483,6 @@ class SHA1Type(HashType):
 
 
 class BooleanType(BaseType):
-
     """A boolean field type. In addition to ``True`` and ``False``, coerces these
     values:
 
@@ -502,26 +495,25 @@ class BooleanType(BaseType):
     FALSE_VALUES = ('False', 'false', '0')
 
     def to_native(self, value):
-        if isinstance(value, str):
+        if isinstance(value, basestring):
             if value in self.TRUE_VALUES:
                 value = True
             elif value in self.FALSE_VALUES:
                 value = False
 
         if not isinstance(value, bool):
-            raise ConversionError('Must be either true or false.')
+            raise ConversionError(u'Must be either true or false.')
 
         return value
 
 
 class DateType(BaseType):
-
     """Defaults to converting to and from ISO8601 date values.
     """
 
     SERIALIZED_FORMAT = '%Y-%m-%d'
     MESSAGES = {
-        'parse': 'Could not parse {0}. Should be ISO8601 (YYYY-MM-DD).',
+        'parse': u'Could not parse {0}. Should be ISO8601 (YYYY-MM-DD).',
     }
 
     def __init__(self, **kwargs):
@@ -542,7 +534,6 @@ class DateType(BaseType):
 
 
 class DateTimeType(BaseType):
-
     """Defaults to converting to and from ISO8601 datetime values.
 
     :param formats:
@@ -557,14 +548,14 @@ class DateTimeType(BaseType):
     SERIALIZED_FORMAT = '%Y-%m-%dT%H:%M:%S.%f'
 
     MESSAGES = {
-        'parse': 'Could not parse {0}. Should be ISO8601.',
+        'parse': u'Could not parse {0}. Should be ISO8601.',
     }
 
     def __init__(self, formats=None, serialized_format=None, **kwargs):
         """
 
         """
-        if isinstance(format, str):
+        if isinstance(format, basestring):
             formats = [formats]
         if formats is None:
             formats = self.DEFAULT_FORMATS
@@ -592,7 +583,6 @@ class DateTimeType(BaseType):
 
 
 class GeoPointType(BaseType):
-
     """A list storing a latitude and longitude.
     """
 
@@ -604,14 +594,12 @@ class GeoPointType(BaseType):
         if isinstance(value, dict):
             for v in value.values():
                 if not isinstance(v, (float, int)):
-                    raise ValueError(
-                        'Both values in point must be float or int')
+                    raise ValueError('Both values in point must be float or int')
         elif isinstance(value, (list, tuple)):
             if (not isinstance(value[0], (float, int)) or
                     not isinstance(value[1], (float, int))):
                 raise ValueError('Both values in point must be float or int')
         else:
-            raise ValueError(
-                'GeoPointType can only accept tuples, lists, or dicts')
+            raise ValueError('GeoPointType can only accept tuples, lists, or dicts')
 
         return value

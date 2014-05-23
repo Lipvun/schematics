@@ -9,6 +9,7 @@ import bson
 
 
 class ObjectIdType(BaseType):
+
     """An field wrapper around MongoDB ObjectIds.  It is correct to say they're
     bson fields, but I am unaware of bson being used outside MongoDB.
 
@@ -22,7 +23,7 @@ class ObjectIdType(BaseType):
 
     def to_native(self, value):
         if not isinstance(value, bson.objectid.ObjectId):
-            value = bson.objectid.ObjectId(unicode(value))
+            value = bson.objectid.ObjectId(str(value))
         return value
 
     def to_primitive(self, value):
@@ -32,6 +33,6 @@ class ObjectIdType(BaseType):
         if not isinstance(value, bson.objectid.ObjectId):
             try:
                 value = bson.objectid.ObjectId(unicode(value))
-            except Exception, e:
+            except Exception:
                 raise ValidationError('Invalid ObjectId')
         return True

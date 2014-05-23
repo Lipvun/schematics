@@ -1,7 +1,7 @@
-# encoding=utf-8
-
 import inspect
 import itertools
+
+from collections import OrderedDict
 
 from .types import BaseType
 from .types.compound import ModelType
@@ -10,10 +10,10 @@ from .exceptions import BaseError, ModelValidationError
 from .transforms import allow_none, atoms, flatten, expand
 from .transforms import to_primitive, to_native, convert
 from .validate import validate
-from .datastructures import OrderedDict as OrderedDictWithSort
 
 
 class FieldDescriptor(object):
+
     """
     The FieldDescriptor serves as a wrapper for Types that converts them into
     fields.
@@ -55,17 +55,20 @@ class FieldDescriptor(object):
         Checks the field name against a model and deletes the field.
         """
         if self.name not in instance._fields:
-            raise AttributeError('%r has no attribute %r' %
-                                 (type(instance).__name__, self.name))
+            raise AttributeError('{0!r} has no attribute {1!r}'
+                                 .format(type(instance).__name__, self.name))
+
         del instance._fields[self.name]
 
 
 class ModelOptions(object):
+
     """
     This class is a container for all metaclass configuration options. Its
     primary purpose is to create an instance of a model's options for every
     instance of a model.
     """
+
     def __init__(self, klass, namespace=None, roles=None,
                  serialize_when_none=True):
         """
@@ -87,6 +90,7 @@ class ModelOptions(object):
 
 
 class ModelMeta(type):
+
     """
     Meta class for Models.
     """
@@ -105,12 +109,12 @@ class ModelMeta(type):
         ``cls._options`` is the end result of parsing the ``Options`` class
         """
 
-        ### Structures used to accumulate meta info
-        fields = OrderedDictWithSort()
+        # Structures used to accumulate meta info
+        fields = OrderedDict()
         serializables = {}
         validator_functions = {}  # Model level
 
-        ### Accumulate metas info from parent classes
+        # Accumulate metas info from parent classes
         for base in reversed(bases):
             if hasattr(base, '_fields'):
                 fields.update(base._fields)
@@ -119,8 +123,8 @@ class ModelMeta(type):
             if hasattr(base, '_validator_functions'):
                 validator_functions.update(base._validator_functions)
 
-        ### Parse this class's attributes into meta structures
-        for key, value in attrs.iteritems():
+        # Parse this class's attributes into meta structures
+        for key, value in attrs.items():
             if key.startswith('validate_') and callable(value):
                 validator_functions[key[9:]] = value
             if isinstance(value, BaseType):
@@ -128,15 +132,16 @@ class ModelMeta(type):
             if isinstance(value, Serializable):
                 serializables[key] = value
 
-        ### Parse meta options
+        # Parse meta options
         options = cls._read_options(name, bases, attrs)
 
-        ### Convert list of types into fields for new klass
-        fields.sort(key=lambda i: i[1]._position_hint)
-        for key, field in fields.iteritems():
+        # Convert list of types into fields for new klass
+        fields = OrderedDict(
+            sorted(fields.items(), key=lambda i: i[1]._position_hint))
+        for key, field in fields.items():
             attrs[key] = FieldDescriptor(key)
 
-        ### Ready meta data to be klass attributes
+        # Ready meta data to be klass attributes
         attrs['_fields'] = fields
         attrs['_serializables'] = serializables
         attrs['_validator_functions'] = validator_functions
@@ -144,7 +149,7 @@ class ModelMeta(type):
 
         klass = type.__new__(cls, name, bases, attrs)
 
-        ### Add reference to klass to each field instance
+        # Add reference to klass to each field instance
         for field in fields.values():
             field.owner_model = klass
 
@@ -184,13 +189,14 @@ class ModelMeta(type):
 
 #   def __iter__(self):
 #       return itertools.chain(
-#           self.fields.iteritems(),
-#           self._unbound_fields.iteritems(),
-#           self._unbound_serializables.iteritems()
+#           self.fields.items(),
+#           self._unbound_fields.items(),
+#           self._unbound_serializables.items()
 #       )
 
 
-class Model(object):
+class Model(object, metaclass=ModelMeta):
+
     """
     Enclosure for fields and validation. Same pattern deployed by Django
     models, SQLAlchemy declarative extension and other developer friendly
@@ -201,12 +207,11 @@ class Model(object):
     possible to convert the raw data into richer Python constructs.
     """
 
-    __metaclass__ = ModelMeta
     __optionsclass__ = ModelOptions
 
-    def __init__(self, raw_data=None, deserialize_mapping=None):  # TODO change back to keywords
-        if raw_data is None:
-            raw_data = {}
+    # TODO change back to keywords
+    def __init__(self, raw_data=None, deserialize_mapping=None):
+        raw_data = raw_data or {}
         self._initial = raw_data
         self._data = self.convert(raw_data, strict=True,
                                   mapping=deserialize_mapping)
@@ -308,13 +313,13 @@ class Model(object):
         return iter(self._fields)
 
     def keys(self):
-        return self._fields.keys()
+        return list(self._fields.keys())
 
     def items(self):
-        return [(k, self.get(k)) for k in self._fields.iterkeys()]
+        return list(self._fields.items())
 
     def values(self):
-        return [self.get(k) for k in self._fields.iterkeys()]
+        return list(self._fields.values())
 
     def get(self, key, default=None):
         try:
@@ -358,10 +363,10 @@ class Model(object):
 
     def __repr__(self):
         try:
-            u = unicode(self)
+            u = str(self)
         except (UnicodeEncodeError, UnicodeDecodeError):
             u = '[Bad Unicode data]'
-        return u"<%s: %s>" % (self.__class__.__name__, u)
+        return '<{0!s}: {1!s}>'.format(self.__class__.__name__, u)
 
-    def __unicode__(self):
-        return '%s object' % self.__class__.__name__
+    def __str__(self):
+        return '{!s}object'.format(self.__class__.__name__)

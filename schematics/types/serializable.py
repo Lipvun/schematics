@@ -11,11 +11,11 @@ def serializable(*args, **kwargs):
     ...     country_code = StringType()
     ...     @serializable
     ...     def country_name(self):
-    ...         return {'us': u'United States'}[self.country_code]
+    ...         return {'us': 'United States'}[self.country_code]
     ...
     >>> location = Location({'country_code': 'us'})
     >>> location.serialize()
-    {'country_name': u'United States', 'country_code': u'us'}
+    {'country_name': 'United States', 'country_code': 'us'}
     >>>
     :param type:
         A custom subclass of `BaseType` for enforcing a certain type
@@ -27,8 +27,9 @@ def serializable(*args, **kwargs):
         serialized_type = kwargs.pop("type", BaseType())
         serialized_name = kwargs.pop("serialized_name", None)
         serialize_when_none = kwargs.pop("serialize_when_none", True)
-        return Serializable(f, type=serialized_type, serialized_name=serialized_name,
-            serialize_when_none=serialize_when_none)
+        return Serializable(f, type=serialized_type,
+                            serialized_name=serialized_name,
+                            serialize_when_none=serialize_when_none)
 
     if len(args) == 1 and callable(args[0]):
         # No arguments, this is the decorator
@@ -40,7 +41,9 @@ def serializable(*args, **kwargs):
 
 class Serializable(object):
 
-    def __init__(self, f, type=None, serialized_name=None, serialize_when_none=True):
+    def __init__(self, f, type=None,
+                 serialized_name=None,
+                 serialize_when_none=True):
         self.f = f
         self.type = type
         self.serialized_name = serialized_name

@@ -51,7 +51,7 @@ def test_serializable_with_custom_serializable_class():
     class PlayerIdType(LongType):
 
         def to_primitive(self, value):
-            return unicode(value)
+            return str(value)
 
     class Player(Model):
         id = LongType()
@@ -354,7 +354,8 @@ def test_possible_to_override_model_wide_serialize_when_none():
     q = StrictQuestion(dict(id=1))
 
     d = q.serialize()
-    assert d == {"id": "1", "question": None, "resources": None, "strictness": None}
+    assert d == {"id": "1", "question": None,
+                 "resources": None, "strictness": None}
 
 
 def test_possible_to_override_model_wide_settings_per_field():
@@ -577,8 +578,8 @@ def test_serializable_with_dict_and_roles():
                 "public": blacklist("result")
             }
 
-    p1 = Player({"id": 1L, "display_name": "A"})
-    p2 = Player({"id": 2L, "display_name": "B"})
+    p1 = Player({"id": 1, "display_name": "A"})
+    p2 = Player({"id": 2, "display_name": "B"})
 
     game = Game({
         "id": "1",
@@ -596,10 +597,10 @@ def test_serializable_with_dict_and_roles():
     assert d == {
         "id": "1",
         "players": {
-            1L: {
+            1: {
                 "display_name": "A"
             },
-            2L: {
+            2: {
                 "display_name": "B"
             },
         }
@@ -718,9 +719,10 @@ def test_role_set_operations():
         self.assertEqual(d, {
             'md5': myhash
         })
-        
+
         m2 = M(d)
         self.assertEqual(m2.md5, myhash)
+
 
 def test_serializable_with_list_and_default_role():
     class Player(Model):

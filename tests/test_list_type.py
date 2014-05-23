@@ -127,13 +127,14 @@ def test_validation_with_min_size():
         c = Card({"users": None})
         c.validate()
 
-        assert exception.messages['users'] == [u'This field is required.']
+        assert exception.messages['users'] == ['This field is required.']
 
     with pytest.raises(ValidationError) as exception:
         c = Card({"users": []})
         c.validate()
 
-        assert exception.messages['users'] == [u'Please provide at least 1 item.']
+        assert exception.messages['users'] == [
+            'Please provide at least 1 item.']
 
 
 def test_list_field_required():
@@ -168,7 +169,7 @@ def test_list_model_field():
     class Card(Model):
         users = ListType(ModelType(User), min_size=1, required=True)
 
-    data = {'users': [{'name': u'Doggy'}]}
+    data = {'users': [{'name': 'Doggy'}]}
     c = Card(data)
 
     c.users = None
@@ -177,4 +178,4 @@ def test_list_model_field():
 
         errors = exception.messages
 
-        assert errors['users'] == [u'This field is required.']
+        assert errors['users'] == ['This field is required.']

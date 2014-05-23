@@ -52,6 +52,7 @@ def test_int():
 
 def test_custom_validation_functions():
     class UppercaseType(BaseType):
+
         def validate_uppercase(self, value):
             if value.upper() != value:
                 raise ValidationError("Value must be uppercase!")
@@ -78,7 +79,8 @@ def test_custom_validation_function_and_inheritance():
 
         def validate_contains_m_chars(self, value):
             if value.count("M") != self.number_of_m_chars:
-                raise ValidationError("Value must contain {0} 'm' characters".format(self.number_of_m_chars))
+                raise ValidationError(
+                    "Value must contain {0} 'm' characters".format(self.number_of_m_chars))
 
     field = MUppercaseType(number_of_m_chars=3)
 
@@ -93,12 +95,12 @@ def test_custom_validation_function_and_inheritance():
 
 def test_email_type_with_invalid_email():
     with pytest.raises(ValidationError):
-        EmailType().validate(u'sdfg\U0001f636\U0001f46e')
+        EmailType().validate('sdfg\U0001f636\U0001f46e')
 
 
 def test_url_type_with_invalid_url():
     with pytest.raises(ValidationError):
-        URLType().validate(u'http:example.com')
+        URLType().validate('http:example.com')
 
 
 def test_string_type_required():
@@ -128,5 +130,3 @@ def test_string_regex():
 
     with pytest.raises(ValidationError):
         StringType(regex='\d+').validate("a")
-
-

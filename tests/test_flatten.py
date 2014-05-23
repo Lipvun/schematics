@@ -192,22 +192,22 @@ def test_flatten_with_listtype():
     input_data = {
         "id": 1,
         "categories": [
-        {
-            "slug": "math",
-            "xp_level": {
-                "level": 1,
-                "stars": 1,
-                "title": "Master",
-            }
-        },
-        {
-            "slug": "twilight",
-            "xp_level": {
-                "level": 2,
-                "stars": 1,
-                "title": "Master",
-            }
-        }]
+            {
+                "slug": "math",
+                "xp_level": {
+                    "level": 1,
+                    "stars": 1,
+                    "title": "Master",
+                }
+            },
+            {
+                "slug": "twilight",
+                "xp_level": {
+                    "level": 2,
+                    "stars": 1,
+                    "title": "Master",
+                }
+            }]
     }
     info = PlayerCategoryInfo(input_data)
 
@@ -312,7 +312,8 @@ def test_flatten_serializables_on_by_default():
     player.xp_level.level == 4
 
     flat = player.flatten()
-    assert flat == {"total_points": 2, "xp_level.level": 4, "xp_level.title": "Best"}
+    assert flat == {
+        "total_points": 2, "xp_level.level": 4, "xp_level.title": "Best"}
 
     player_from_flat = Player.from_flat(flat)
     assert player == player_from_flat

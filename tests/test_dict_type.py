@@ -31,8 +31,9 @@ def test_dict_type_with_model_type():
 
     class PlayerInfo(Model):
         categories = DictType(ModelType(CategoryStats))
-        #TODO: Maybe it would be cleaner to have
-        #       DictType(CategoryStats) and implicitly convert to ModelType(CategoryStats)
+        # TODO: Maybe it would be cleaner to have
+        # DictType(CategoryStats) and implicitly convert to
+        # ModelType(CategoryStats)
 
     info = PlayerInfo(dict(categories={
         "math": {
@@ -78,8 +79,9 @@ def test_dict_type_with_model_type_init_with_instance():
     class PlayerInfo(Model):
         id = IntType()
         categories = DictType(ModelType(CategoryStats))
-        #TODO: Maybe it would be cleaner to have
-        #       DictType(CategoryStats) and implicitly convert to ModelType(CategoryStats)
+        # TODO: Maybe it would be cleaner to have
+        # DictType(CategoryStats) and implicitly convert to
+        # ModelType(CategoryStats)
 
     math_stats = CategoryStats({
         "category_slug": "math",
@@ -131,13 +133,14 @@ def test_with_empty():
 
 def test_key_type():
     def player_id(value):
-        return long(value)
+        return int(value)
 
     class CategoryStatsInfo(Model):
         slug = StringType()
 
     class PlayerInfo(Model):
-        categories = DictType(ModelType(CategoryStatsInfo), coerce_key=player_id)
+        categories = DictType(
+            ModelType(CategoryStatsInfo), coerce_key=player_id)
 
     stats = CategoryStatsInfo({
         "slug": "math",
@@ -145,7 +148,7 @@ def test_key_type():
 
     info = PlayerInfo({
         "categories": {
-            1L: {"slug": "math"}
+            1: {"slug": "math"}
         },
     })
 
@@ -153,5 +156,5 @@ def test_key_type():
 
     d = info.serialize()
     assert d == {
-        "categories": {1L: {"slug": "math"}}
+        "categories": {1: {"slug": "math"}}
     }

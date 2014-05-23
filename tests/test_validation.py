@@ -65,7 +65,7 @@ def test_validation_none_fails():
         Player({"first_name": None}).validate()
 
         assert len(exception.messages) == 1  # Only one failure
-        assert u'This field is required' in exception.messages["first_name"][0]
+        assert 'This field is required' in exception.messages["first_name"][0]
 
 
 def test_custom_validators():
@@ -100,16 +100,17 @@ def test_messages_subclassing():
     with pytest.raises(ValidationError) as exception:
         TestDoc({'title': None}).validate()
 
-        assert u'Never forget' in exception.messages['title']
+        assert 'Never forget' in exception.messages['title']
 
 
 def test_messages_instance_level():
     class TestDoc(Model):
-        title = StringType(required=True, messages={'required': u'Never forget'})
+        title = StringType(
+            required=True, messages={'required': u'Never forget'})
 
     with pytest.raises(ValidationError) as exception:
         TestDoc({'title': None}).validate()
-        assert u'Never forget' in exception.messages['title']
+        assert 'Never forget' in exception.messages['title']
 
 
 def test_model_validators():
@@ -160,15 +161,16 @@ def test_multi_key_validation_part_two():
         call_me = BooleanType(default=False)
 
         def validate_call_me(self, data, value):
-            if data['name'] == u'Brad' and value is True:
-                raise ValidationError(u'I\'m sorry I never call people who\'s name is Brad')
+            if data['name'] == 'Brad' and value is True:
+                raise ValidationError(
+                    'I\'m sorry I never call people who\'s name is Brad')
             return value
 
-    Signup({'name': u'Brad'}).validate()
-    Signup({'name': u'Brad', 'call_me': False}).validate()
+    Signup({'name': 'Brad'}).validate()
+    Signup({'name': 'Brad', 'call_me': False}).validate()
 
     with pytest.raises(ValidationError):
-        Signup({'name': u'Brad', 'call_me': True}).validate()
+        Signup({'name': 'Brad', 'call_me': True}).validate()
 
 
 def test_basic_error():
@@ -222,11 +224,11 @@ def test_deep_errors_with_lists():
     valid_data = {
         'courses': [
             {'id': 'ENG103', 'attending': [
-                {'name': u'Danny'},
-                {'name': u'Sandy'}]},
+                {'name': 'Danny'},
+                {'name': 'Sandy'}]},
             {'id': 'ENG203', 'attending': [
-                {'name': u'Danny'},
-                {'name': u'Sandy'}
+                {'name': 'Danny'},
+                {'name': 'Sandy'}
             ]}
         ]
     }
@@ -248,7 +250,7 @@ def test_deep_errors_with_lists():
                 {
                     'attending': [
                         {
-                            'name': [u'This field is required.'],
+                            'name': ['This field is required.'],
                         },
                     ],
                 }
@@ -271,14 +273,14 @@ def test_deep_errors_with_dicts():
         'courses': {
             "ENG103": {
                 'id': 'ENG103', 'attending': [
-                    {'name': u'Danny'},
-                    {'name': u'Sandy'},
+                    {'name': 'Danny'},
+                    {'name': 'Sandy'},
                 ],
             },
             "ENG203": {
                 'id': 'ENG203', 'attending': [
-                    {'name': u'Danny'},
-                    {'name': u'Sandy'},
+                    {'name': 'Danny'},
+                    {'name': 'Sandy'},
                 ],
             },
         }
@@ -302,7 +304,7 @@ def test_deep_errors_with_dicts():
                 {
                     'attending': [
                         {
-                            'name': [u'This field is required.']
+                            'name': ['This field is required.']
                         }
                     ]
                 }

@@ -57,7 +57,8 @@ def test_validate_partial_with_context_data():
         id = IntType()
         name = StringType(required=True)
 
-    data = validate(Player, {'id': 4}, partial=False, context={'name': 'Arthur'})
+    data = validate(
+        Player, {'id': 4}, partial=False, context={'name': 'Arthur'})
 
     assert data == {'id': 4, 'name': 'Arthur'}
 
@@ -69,11 +70,11 @@ def test_validate_with_instance_level_validators():
         def validate_id(self, context, value):
             if p1._initial['id'] != value:
                 p1._data['id'] = p1._initial['id']
-                raise ValidationError('Cannot change id')            
+                raise ValidationError('Cannot change id')
 
     p1 = Player({'id': 4})
     p1.id = 3
-
+    p1.validate()
     try:
         data = validate(Player, p1)
     except ValidationError as e:

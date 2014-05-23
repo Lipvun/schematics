@@ -80,11 +80,11 @@ def test_field_binding():
     valid_data = {
         'courses': [
             {'id': 'ENG103', 'attending': [
-                {'name': u'Danny'},
-                {'name': u'Sandy'}]},
+                {'name': 'Danny'},
+                {'name': 'Sandy'}]},
             {'id': 'ENG203', 'attending': [
-                {'name': u'Danny'},
-                {'name': u'Sandy'}
+                {'name': 'Danny'},
+                {'name': 'Sandy'}
             ]}
         ]
     }

@@ -6,6 +6,7 @@ from schematics.types import BaseType
 from schematics.exceptions import ValidationError
 
 import bson
+from bson.dbref import DBRef
 
 
 class ObjectIdType(BaseType):
@@ -32,7 +33,10 @@ class ObjectIdType(BaseType):
     def validate_id(self, value):
         if not isinstance(value, bson.objectid.ObjectId):
             try:
-                value = bson.objectid.ObjectId(unicode(value))
+                value = bson.objectid.ObjectId(str(value))
             except Exception:
                 raise ValidationError('Invalid ObjectId')
         return True
+
+class DBRefType(BaseType):
+    pass
